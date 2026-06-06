@@ -1,0 +1,6 @@
+{
+    "id": "KB_06",
+    "title": "Equated Monthly Installment (EMI) FAQ",
+    "category": "FAQs",
+    "content": "What is an EMI? An Equated Monthly Installment (EMI) is a fixed payment amount made by a borrower to a lender at a specified date each calendar month. EMIs consist of both principal and interest components. Can I change my EMI due date? Due dates are fixed at the time of loan onboarding (typically the 5th) and cannot be customized mid-tenure. How is EMI calculated? EMI is calculated using the formula: EMI = [P x R x (1+R)^N]/[((1+R)^N)-1], where P is principal, R is monthly interest rate, and N is tenure in months."
+}

@@ -1,0 +1,6 @@
+{
+    "id": "KB_05",
+    "title": "Payment Failure and Double Debit Resolution",
+    "category": "Payments",
+    "content": "If your payment fails but the money is debited from your bank account, please do not panic. The money is usually held in the payment gateway and is automatically refunded to your source account within 5-7 working days. If the EMI status is not updated in our system within 48 hours, please submit a ticket under 'Payment Failure' category with a copy of your bank statement showing the transaction details and the transaction reference number."
+}

@@ -1,0 +1,6 @@
+{
+    "id": "KB_07",
+    "title": "National Automated Clearing House (NACH) Mandate Setup",
+    "category": "Payments",
+    "content": "NACH mandate is mandatory for automatic debit of loan EMIs. Borrowers can register NACH either online (e-NACH using NetBanking or Debit Card) or offline by signing a physical mandate form. Online setup takes 2-3 working days to activate, whereas offline setup requires 15-20 days for bank verification. In case of bank account changes, a new NACH mandate must be registered at least 15 days before the next EMI due date to avoid debit failures."
+}
