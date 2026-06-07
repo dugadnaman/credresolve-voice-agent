@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 import sqlite3
-import anthropic
+from groq import Groq
 from dotenv import load_dotenv
 
 # Import core system modules
@@ -27,7 +27,7 @@ from agent.tools import (
 
 # Load environment variables
 load_dotenv()
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 # Mock classes for testing without API keys
 class MockContentBlock:
@@ -49,17 +49,26 @@ class BorrowerAgent:
         self.diagnosis_layer = DiagnosisLayer()
         self.rag_engine = RAGEngine()
         
-        # Check if we should run in mock mode
-        self.is_mock = not ANTHROPIC_API_KEY or "your_key_here" in ANTHROPIC_API_KEY
+        # Check if we should run in mock mode (missing, invalid, or placeholder keys)
+        self.is_mock = (
+            not GROQ_API_KEY 
+            or "your_key_here" in GROQ_API_KEY
+        )
         
         if not self.is_mock:
-            self.client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+            try:
+                self.groq_client = Groq(api_key=GROQ_API_KEY)
+            except Exception as e:
+                print(f"[API Error] Groq client init failed: {e}. Running in mock mode.")
+                self.is_mock = True
+                self.groq_client = None
         else:
-            self.client = None
+            self.groq_client = None
             
         self.conversation_history = []
         self.current_borrower_id = None
         self.system_prompt = None
+        self.context = None
         self.last_intent = "GENERAL_INQUIRY"
         self.last_risk_signals = []
         self.last_tools_used = []
@@ -131,116 +140,81 @@ class BorrowerAgent:
 
     def _get_mock_response(self) -> MockMessages:
         """Simulates LLM responses and tool usage calls for validation testing when API keys are absent."""
-        history_len = len(self.conversation_history)
+        user_message = ""
+        for msg in reversed(self.conversation_history):
+            if msg.get("role") == "user" and isinstance(msg.get("content"), str):
+                user_message = msg["content"]
+                break
+                
+        msg_lower = user_message.lower()
         
-        if history_len == 1:
-            # Turn 1: User asked "Why was a penalty charged..."
-            # Request tool call get_penalty_details
-            return MockMessages(
-                content=[MockContentBlock(type="tool_use", id="mock_u_1", name="get_penalty_details", input={})],
-                stop_reason="tool_use"
-            )
-        elif history_len == 3:
-            # Turn 1 (follow-up): Tool result received. Explain late charges.
-            return MockMessages(
-                content=[MockContentBlock(type="text", text="Hi Arjun. A late fee penalty of ₹550.00 was charged because your payment due in May was missed, and your loan is currently 11 days overdue. We also recorded an auto-debit bounce charge.")],
-                stop_reason="end_turn"
-            )
-        elif history_len == 5:
-            # Turn 2: User asks for a waiver
-            # Request tool call search_knowledge_base
-            return MockMessages(
-                content=[MockContentBlock(type="tool_use", id="mock_u_2", name="search_knowledge_base", input={"query": "penalty waiver bank error"})],
-                stop_reason="tool_use"
-            )
-        elif history_len == 7:
-            # Turn 2 (follow-up): Tool result received. Explain waiver conditions.
-            return MockMessages(
-                content=[MockContentBlock(type="text", text="According to our penalty waiver policy, a waiver is considered if the late payment resulted from a bank or gateway server error rather than user shortage of funds. Since you indicated there was a server glitch, we can raise a support ticket to initiate a waiver request. Would you like me to create this ticket now?")],
-                stop_reason="end_turn"
-            )
-        elif history_len == 9:
-            # Turn 3: User says to create ticket
-            # Request tool call create_ticket
-            return MockMessages(
-                content=[MockContentBlock(type="tool_use", id="mock_u_3", name="create_ticket", input={
-                    "category": "PENALTY_WAIVER",
-                    "subject": "Late Fee Waiver Request - Bank Server Error",
-                    "description": "Borrower requested waiver of ₹550 late fee. Stated the auto-debit bounced due to bank gateway failure on the due date."
-                })],
-                stop_reason="tool_use"
-            )
-        elif history_len == 11:
-            # Turn 3 (follow-up): Tool result received. Confirm ticket creation.
-            return MockMessages(
-                content=[MockContentBlock(type="text", text="I have successfully created support ticket TKT-WAIVER-2026 for you. Our credit committee will review the bank transmission failure and get back to you within 2 business days. Is there anything else I can help you with today?")],
-                stop_reason="end_turn"
-            )
+        name = "Borrower"
+        penalty_amount = 0.0
+        overdue_days = 0
+        emi_amount = 0.0
+        emis_remaining = 0
+        next_due_date = "N/A"
+        interest_paid = 0.0
+        outstanding_balance = 0.0
+        
+        if self.context:
+            if self.context.borrower:
+                full_name = self.context.borrower.name
+                name = full_name.split()[0] if full_name else "Borrower"
+                penalty_amount = self.context.borrower.penalty_amount
+                overdue_days = self.context.borrower.overdue_days
+                emi_amount = self.context.borrower.emi_amount
+                emis_remaining = self.context.borrower.emis_remaining
+                next_due_date = self.context.borrower.next_due_date
+                outstanding_balance = self.context.borrower.outstanding_balance
+            if self.context.payments:
+                interest_paid = self.context.payments.total_interest_paid
+                
+        if "penalty" in msg_lower or "charge" in msg_lower:
+            text = f"Hi {name}. A penalty of ₹{penalty_amount} has been charged because your account is {overdue_days} days overdue. This is per our late payment policy which applies from day 4 onwards."
+        elif "ticket" in msg_lower or "create" in msg_lower:
+            import time
+            timestamp = int(time.time())
+            text = f"I've created support ticket TKT{timestamp} for your penalty waiver request. Our team will review within 2 business days."
+        elif "waive" in msg_lower or "waiver" in msg_lower or "bank" in msg_lower:
+            text = "I understand the payment failure was due to a bank error. As per our waiver policy, bank-side failures are eligible for full waiver. I'll create a support ticket for this right away."
+        elif "emi" in msg_lower or "remaining" in msg_lower or "installment" in msg_lower:
+            text = f"You have {emis_remaining} EMIs remaining on your loan. Your next EMI of ₹{emi_amount} is due on {next_due_date}."
+        elif "interest" in msg_lower:
+            text = f"You've paid approximately ₹{interest_paid} in interest so far. Your outstanding balance is ₹{outstanding_balance}."
+        elif any(k in msg_lower for k in ["salary", "pay", "friday", "next week"]):
+            text = "I've noted your commitment. Could you confirm the exact date and amount you plan to pay?"
         else:
-            return MockMessages(
-                content=[MockContentBlock(type="text", text="I'm here to assist you. Please let me know what query you have.")],
-                stop_reason="end_turn"
-            )
+            text = f"Thank you for calling CredResolve. I have your account details ready. How can I help you today, {name}?"
+        return MockMessages(
+            content=[MockContentBlock(type="text", text=text)],
+            stop_reason="end_turn"
+        )
 
     def _run_agent_loop(self) -> str:
-        """Executes the tool usage handling loop with Claude until a final text response is produced."""
-        while True:
-            if self.is_mock:
-                response = self._get_mock_response()
-            else:
-                response = self.client.messages.create(
-                    model="claude-opus-4-6",
-                    max_tokens=1024,
-                    system=self.system_prompt,
-                    tools=TOOL_DEFINITIONS,
-                    messages=self.conversation_history
-                )
-                
-            content_list = []
-            tool_calls = []
-            final_text = ""
+        """Executes the loop/call with Groq until a final text response is produced."""
+        if self.is_mock:
+            response = self._get_mock_response()
+            result = response.content[0].text
+            self.conversation_history.append({"role": "assistant", "content": result})
+            return result
             
-            for block in response.content:
-                # Handle both SDK object blocks and mock dictionary/object blocks
-                b_type = getattr(block, "type", None) or block.type
-                if b_type == "text":
-                    b_text = getattr(block, "text", None) or block.text
-                    content_list.append({"type": "text", "text": b_text})
-                    final_text = b_text
-                elif b_type == "tool_use":
-                    b_id = getattr(block, "id", None) or block.id
-                    b_name = getattr(block, "name", None) or block.name
-                    b_input = getattr(block, "input", None) or block.input
-                    content_list.append({
-                        "type": "tool_use",
-                        "id": b_id,
-                        "name": b_name,
-                        "input": b_input
-                    })
-                    tool_calls.append(block)
-                    
-            self.conversation_history.append({"role": "assistant", "content": content_list})
-            
-            # Handle tool use branch
-            if response.stop_reason == "tool_use":
-                tool_results_content = []
-                for tool in tool_calls:
-                    t_name = getattr(tool, "name", None) or tool.name
-                    t_input = getattr(tool, "input", None) or tool.input
-                    t_id = getattr(tool, "id", None) or tool.id
-                    
-                    # Run target tool code and serialize output
-                    result_str = self.handle_tool_call(t_name, t_input)
-                    
-                    tool_results_content.append({
-                        "type": "tool_result",
-                        "tool_use_id": t_id,
-                        "content": result_str
-                    })
-                self.conversation_history.append({"role": "user", "content": tool_results_content})
-            else:
-                # Return text message once LLM finishes call actions
-                return final_text
+        try:
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "system", "content": self.system_prompt}] + self.conversation_history,
+                max_tokens=300
+            )
+            result = response.choices[0].message.content
+            self.conversation_history.append({"role": "assistant", "content": result})
+            return result
+        except Exception as e:
+            print(f"[API Error] Groq API failed: {e}. Falling back to mock mode.")
+            self.is_mock = True
+            response = self._get_mock_response()
+            result = response.content[0].text
+            self.conversation_history.append({"role": "assistant", "content": result})
+            return result
 
     def chat(self, borrower_identifier: str, user_message: str) -> str:
         """Main interaction interface for borrower support agent chat turns."""
@@ -251,6 +225,7 @@ class BorrowerAgent:
         if not context:
             raise ValueError(f"Borrower profile for identifier '{borrower_identifier}' was not found in DB.")
         
+        self.context = context
         self.current_borrower_id = context.borrower.borrower_id
         self.last_risk_signals = context.risk_signals
         
@@ -291,7 +266,7 @@ if __name__ == "__main__":
         phone, name = row
         print(f"Starting simulated chat session with: {name} (Phone: {phone})")
         if agent.is_mock:
-            print("[INFO] Running in mock mode because ANTHROPIC_API_KEY is not configured.")
+            print("[INFO] Running in mock mode because GROQ_API_KEY is not configured.")
         print("=" * 60)
         
         # Turn 1
