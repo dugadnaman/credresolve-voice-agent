@@ -105,6 +105,7 @@ class BorrowerAgent:
         prompt.append("- If borrower mentions salary delay or payment commitment, always ask for exact date and amount.")
         prompt.append("- For settlement or escalation, always create a ticket before ending the call.")
         prompt.append("- Keep responses under 3 sentences for simple queries, longer only for complex explanations.")
+        prompt.append("- Never refer to yourself as [Your Name]. Always introduce yourself as 'your CredResolve loan servicing agent'.")
         
         return "\n".join(prompt)
 
@@ -241,7 +242,20 @@ class BorrowerAgent:
             self.system_prompt = self.build_system_prompt(context, diagnosis, rag_docs)
             
         self.conversation_history.append({"role": "user", "content": user_message})
-        return self._run_agent_loop()
+        response = self._run_agent_loop()
+        
+        # Check if the response contains commitment keywords and borrower is overdue
+        resp_lower = response.lower()
+        keywords = ["friday", "pay by", "commit", "will pay", "next week"]
+        if any(kw in resp_lower for kw in keywords) and self.context.borrower.overdue_days > 0:
+            from core.memory_store import MemoryStore
+            memory = MemoryStore()
+            from datetime import datetime, timedelta
+            commit_date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+            memory.save_commitment(self.current_borrower_id, self.context.borrower.emi_amount, commit_date, "Mentioned in conversation")
+            print("💾 Commitment auto-saved to memory")
+            
+        return response
 
 if __name__ == "__main__":
     # Test script for simulated conversation

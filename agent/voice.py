@@ -291,12 +291,43 @@ if __name__ == "__main__":
     
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT phone FROM borrowers WHERE delinquency_status='OVERDUE_30' AND penalty_amount > 0 LIMIT 1;")
+    cursor.execute("""
+        SELECT b.phone, b.borrower_id, b.name 
+        FROM borrowers b 
+        INNER JOIN borrower_memory m ON b.borrower_id = m.borrower_id 
+        WHERE m.memory_type='COMMITMENT' 
+        ORDER BY m.created_at DESC LIMIT 1
+    """)
     row = cursor.fetchone()
+    
+    if not row:
+        cursor.execute("SELECT phone, borrower_id, name FROM borrowers WHERE delinquency_status='OVERDUE_15' LIMIT 1;")
+        row = cursor.fetchone()
+        
     conn.close()
     
     if row:
-        phone = row[0]
+        phone, borrower_id, name = row
+        
+        # Check if they have a pending commitment
+        from core.memory_store import MemoryStore
+        memory = MemoryStore()
+        mem = memory.get_borrower_memory(borrower_id)
+        has_pending = False
+        if mem["commitments"]:
+            import json
+            for c in mem["commitments"]:
+                try:
+                    c_val = json.loads(c["value"])
+                    if not c_val.get("fulfilled", False):
+                        has_pending = True
+                        break
+                except Exception:
+                    pass
+                    
+        print(f"Loading borrower: {name} ({borrower_id}) | Phone: {phone}")
+        print(f"Has pending commitment: {'Yes' if has_pending else 'No'}")
+        
         conversation = VoiceConversation(phone)
         conversation.run_voice_interactive()
     else:
