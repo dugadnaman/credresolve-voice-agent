@@ -5,6 +5,8 @@ An AI-powered inbound voice agent for borrower support at a lending company. Bui
 ---
 
 ## Architecture
+
+```
 BORROWER CALL
 ↓
 [Context Engine]     → Fetches borrower profile, payment history, tickets, conversations
@@ -12,17 +14,20 @@ BORROWER CALL
 [Diagnosis Layer]    → Detects intent, identifies known facts, finds missing info
 ↓
 [LLM Agent]          → Reasons, calls tools, generates response
-↑       ↓
-[RAG]   [Tools]      → Policy retrieval + CRM/payment/ticket actions
+↑         ↓
+[RAG]           [Tools]   → Policy retrieval + CRM/payment/ticket actions
 ↓
 [Memory Store]       → Saves commitments, preferences, resolution paths
 ↓
 BORROWER HEARS ANSWER
+```
 
 ---
 
 ## Project Structure
-voice agent/
+
+```
+voice-agent/
 ├── core/
 │   ├── context_engine.py      # Builds unified borrower profile before every call
 │   ├── diagnosis_layer.py     # Detects intent, identifies info gaps
@@ -32,13 +37,15 @@ voice agent/
 │   ├── tools.py               # 8 tool definitions for the LLM agent
 │   └── agent.py               # Main agent loop with tool use
 ├── api/
-│   └── main.py                # FastAPI server exposing all endpoints
+│   ├── main.py                # FastAPI server
+│   └── dashboard.py           # Live demo dashboard
 ├── data/
-│   ├── borrowers.db           # SQLite: 100 borrowers, 500 payments, 100 tickets, 100 conversations
+│   ├── borrowers.db           # SQLite: 100 borrowers, 500 payments, 100 tickets
 │   └── knowledge_base/        # 20 JSON policy documents
 ├── scripts/
 │   └── generate_data.py       # Synthetic data generator
 └── requirements.txt
+```
 
 ---
 
