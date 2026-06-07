@@ -188,34 +188,34 @@ def get_dashboard():
         </div>
         <div class="flex space-x-6 flex-wrap gap-y-2">
             <!-- Zoho CRM -->
-            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor">
+            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor cursor-help" title="Production: Zoho CRM API v2">
                 <span id="badge-dot-crm" class="w-2.5 h-2.5 rounded-full bg-success"></span>
                 <span class="font-semibold text-white">Zoho CRM</span>
-                <span id="badge-status-crm" class="text-slate-400">Connected</span>
+                <span id="badge-status-crm" class="text-slate-400">Mock (Ready for API)</span>
             </div>
             <!-- Loan Management System -->
-            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor">
+            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor cursor-help" title="Production: Finflux / Nucleus LMS API">
                 <span id="badge-dot-lms" class="w-2.5 h-2.5 rounded-full bg-success"></span>
                 <span class="font-semibold text-white">Loan Management System</span>
-                <span id="badge-status-lms" class="text-slate-400">Connected</span>
+                <span id="badge-status-lms" class="text-slate-400">Mock (Ready for API)</span>
             </div>
             <!-- Razorpay Gateway -->
-            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor">
+            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor cursor-help" title="Production: Razorpay Payment Gateway API">
                 <span id="badge-dot-payments" class="w-2.5 h-2.5 rounded-full bg-success"></span>
                 <span class="font-semibold text-white">Razorpay Gateway</span>
-                <span id="badge-status-payments" class="text-slate-400">Connected</span>
+                <span id="badge-status-payments" class="text-slate-400">Mock (Ready for API)</span>
             </div>
             <!-- Freshdesk -->
-            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor">
+            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor cursor-help" title="Production: Freshdesk REST API v2">
                 <span id="badge-dot-freshdesk" class="w-2.5 h-2.5 rounded-full bg-success"></span>
                 <span class="font-semibold text-white">Freshdesk</span>
-                <span id="badge-status-freshdesk" class="text-slate-400">Connected</span>
+                <span id="badge-status-freshdesk" class="text-slate-400">Mock (Ready for API)</span>
             </div>
             <!-- Confluence KB -->
-            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor">
+            <div class="flex items-center space-x-2 bg-panelbg/50 px-3 py-1 rounded-full border border-bordercolor cursor-help" title="Production: Confluence REST API">
                 <span id="badge-dot-kb" class="w-2.5 h-2.5 rounded-full bg-success"></span>
                 <span class="font-semibold text-white">Confluence KB</span>
-                <span id="badge-status-kb" class="text-slate-400">Connected</span>
+                <span id="badge-status-kb" class="text-slate-400">Mock (Ready for API)</span>
             </div>
         </div>
     </div>
@@ -753,7 +753,7 @@ def get_dashboard():
                         const dot = document.getElementById(sys.dot);
                         const stat = document.getElementById(sys.status);
                         dot.className = 'w-2.5 h-2.5 rounded-full bg-success';
-                        stat.innerText = '✓ Connected';
+                        stat.innerText = 'Mock ✓';
                         stat.className = 'text-success font-semibold';
                         
                         if (index === systems.length - 1) {
