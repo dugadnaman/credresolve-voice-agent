@@ -103,33 +103,30 @@ Persists borrower commitments, preferences, and agent resolution paths across ca
 
 ## Demo Scenarios
 
+### Scenario 1: Remaining EMI Inquiry
+Borrower: "How many EMIs are remaining on my loan?"
+Agent: Identifies borrower, retrieves loan details from LMS, calculates remaining tenure, explains next due date and amount.
+
+### Scenario 2: Interest Paid Inquiry
+Borrower: "How much interest have I paid so far?"
+Agent: Retrieves full payment history from Razorpay gateway, calculates principal vs interest breakdown, explains outstanding balance.
+
 ### Scenario 3: Penalty Charge Inquiry
 Borrower: "Why was a penalty charged on my account?"
 Agent: Retrieves penalty amount and overdue days from context, fetches late payment policy via RAG, explains the exact charge calculation and reason.
 
+### Scenario 4: Payment Failure Due to Bank Glitch
+Borrower: "My payment failed even though I had enough balance."
+Agent: Checks payment logs, retrieves gateway response codes, classifies failure as bank-side vs borrower-side, recommends next actions.
+
 ### Scenario 5: Penalty Waiver Request
 Borrower: "Can my penalty be waived? The payment failed due to a bank error."
-Agent: Checks payment history, retrieves waiver eligibility policy via RAG, determines eligibility, creates support ticket.
+Agent: Checks payment history, retrieves waiver eligibility policy via RAG, determines eligibility, creates support ticket automatically.
 
 ### Scenario 6: Follow-up Call With Memory
 First call - Borrower: "My salary is delayed. I will pay next Friday."
-Agent: Records commitment with date and amount.
-Second call - Agent opens with:
-"Hi [Name], during our last call you committed to paying ₹[amount] by [date] due to a salary delay. Were you able to complete that payment?"
-
----
-
-## Evaluation Coverage
-
-| Criteria | Implementation | Weight |
-|----------|---------------|--------|
-| Context Engine | core/context_engine.py — 5 data sources, risk signals, agent brief | 20% |
-| Diagnosis Layer | core/diagnosis_layer.py — 8 intents, gap analysis, smart questions | 20% |
-| Agentic Voice Experience | agent/agent.py — tool use loop, dynamic conversation | 20% |
-| Multi-system Integration | SQLite mock of CRM, payments, tickets, KB, memory | 15% |
-| RAG Implementation | core/rag_engine.py — 20 policy docs, keyword retrieval | 10% |
-| Memory & Learning | core/memory_store.py — commitments, preferences, resolution paths | 10% |
-| Production Readiness | FastAPI server, health endpoint, .env config, modular structure | 5% |
+Agent: Records commitment with exact date and amount in memory store.
+Second call - Agent opens with: "During our last call you committed to paying ₹[amount] by [date] due to a salary delay. Were you able to complete that payment?"
 
 ---
 
